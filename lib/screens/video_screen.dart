@@ -1,7 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, avoid_print
 import 'dart:async';
 import 'dart:io';
-import 'package:camera/camera.dart';
+// import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,7 +12,7 @@ import 'package:video_player/video_player.dart';
 
 
 class VideoPage extends StatefulWidget {
-  final XFile file;
+  final File file;
 
   const VideoPage({super.key, required this.file});
 
@@ -31,7 +31,7 @@ class VideoPageState extends State<VideoPage> {
   }
 
   Future _initVideoPlayer() async {
-    _videoPlayerController = VideoPlayerController.file(File(widget.file.path));
+    _videoPlayerController = VideoPlayerController.file(widget.file);
     await _videoPlayerController.initialize();
     await _videoPlayerController.setLooping(true);
     await _videoPlayerController.play();

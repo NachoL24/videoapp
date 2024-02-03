@@ -15,7 +15,7 @@ import 'package:video_app/providers/tabata_provider.dart';
 import 'package:video_app/screens/timer_screen.dart';
 import 'package:video_app/screens/video_screen.dart';
 //import 'package:screen_recorder/screen_recorder.dart';
-import 'package:render/render.dart';
+//import 'package:render/render.dart';
 
 
 class CameraPage extends StatefulWidget {
@@ -34,13 +34,10 @@ class CameraPageState extends State<CameraPage> {
   late CameraController _cameraController;
   Offset? _focusPoint;
   bool _isFlashOn = false;
-  late MotionRecorder stopController;
-  final RenderController renderController = RenderController(logLevel: LogLevel.debug);
   // final renderController = RenderController();
   
   @override
   void initState() {
-    
     _initCamera();
     super.initState();
   }
@@ -69,20 +66,16 @@ class CameraPageState extends State<CameraPage> {
 
   _recordVideo() async {
     if (_isRecording == false) {
-      stopController = renderController.recordMotion();
-      // await _cameraController.prepareForVideoRecording();
-      // await _cameraController.startVideoRecording();
+      await _cameraController.prepareForVideoRecording();
+      await _cameraController.startVideoRecording();
       setState(() => _isRecording = true);
     } else {
-      RenderResult result = await stopController.stop();
+      
+      final file = await _cameraController.stopVideoRecording();
       setState(() => _isRecording = false);
-      File refile = result.output;
-      XFile file = XFile(refile.path);
-      // final file = await _cameraController.stopVideoRecording();
-      // setState(() => _isRecording = false);
       final route = MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => VideoPage(file: file),
+        builder: (_) => VideoPage(file: File(file.path)),
       );
       Navigator.push(context, route);
     }
@@ -214,24 +207,21 @@ void _toogleFlash() {
                           );
                           _setFocusPoint(relativTapPosition);
                         },
-                        child: Render(
-                          controller: renderController,
-                          child: CameraPreview(_cameraController,
-                            child:
-                              Positioned(
-                                top: 0,
-                                right: 10,
-                                child: Container(
-                                  color: Colors.transparent,
-                                  child: Text( widget.timerType != TimerType.tabata 
-                                      ? (widget.timerType == TimerType.countdown
-                                        ? context.select((CountDownProvider count) => count.timeLeftString)
-                                        : context.select((CountupProvider count) => count.timeLeftString)) 
-                                      : context.select((TabataProvider count) => count.timeLeftString), 
-                                    style: const TextStyle(fontSize: 50, fontWeight: FontWeight.normal, color: Colors.white),),
-                                ),
+                        child: CameraPreview(_cameraController,
+                          child:
+                            Positioned(
+                              top: 0,
+                              right: 10,
+                              child: Container(
+                                color: Colors.transparent,
+                                child: Text( widget.timerType != TimerType.tabata 
+                                    ? (widget.timerType == TimerType.countdown
+                                      ? context.select((CountDownProvider count) => count.timeLeftString)
+                                      : context.select((CountupProvider count) => count.timeLeftString)) 
+                                    : context.select((TabataProvider count) => count.timeLeftString), 
+                                  style: const TextStyle(fontSize: 50, fontWeight: FontWeight.normal, color: Colors.white),),
                               ),
-                          ),
+                            ),
                         ),
                       ),
                     ),

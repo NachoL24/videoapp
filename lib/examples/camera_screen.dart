@@ -1,10 +1,14 @@
 // ignore_for_file: use_build_context_synchronously, unnecessary_null_comparison, avoid_print
 
+// import 'dart:io';
+
 import 'package:camera/camera.dart';
 // import 'package:ffmpeg_kit_flutter_full/ffmpeg_kit.dart';
 // import 'package:ffmpeg_kit_flutter_full/return_code.dart';
 import 'package:flutter/material.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 import 'package:provider/provider.dart';
+import 'package:video_app/examples/video.dart';
 //import 'package:screen_recorder/screen_recorder.dart';
 //import 'package:video_app/examples/video_con_timer.dart';
 import 'package:video_app/providers/countdown_provider.dart';
@@ -13,7 +17,7 @@ import 'package:video_app/providers/tabata_provider.dart';
 import 'package:video_app/screens/timer_screen.dart';
 import 'package:video_app/screens/video_screen.dart';
 //import 'package:screen_recorder/screen_recorder.dart';
-//import 'package:render/render.dart';
+import 'package:render/render.dart';
 
 
 class CameraPage extends StatefulWidget {
@@ -32,10 +36,13 @@ class CameraPageState extends State<CameraPage> {
   late CameraController _cameraController;
   Offset? _focusPoint;
   bool _isFlashOn = false;
+  late MotionRecorder stopController;
+  final RenderController renderController = RenderController(logLevel: LogLevel.debug);
   // final renderController = RenderController();
   
   @override
   void initState() {
+    
     _initCamera();
     super.initState();
   }
@@ -64,19 +71,40 @@ class CameraPageState extends State<CameraPage> {
 
   _recordVideo() async {
     if (_isRecording == false) {
-      await _cameraController.prepareForVideoRecording();
-      await _cameraController.startVideoRecording();
+      stopController = renderController.recordMotion(settings: const MotionSettings(simultaneousCaptureHandlers: 2000, frameRate: 60));
+      // await _cameraController.prepareForVideoRecording();
+      // await _cameraController.startVideoRecording();
       setState(() => _isRecording = true);
     } else {
-      
-      final file = await _cameraController.stopVideoRecording();
+      RenderResult result = await stopController.stop();
       setState(() => _isRecording = false);
-      final route = MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => VideoPage(file: file),
-      );
-      Navigator.push(context, route);
+      // File refile = result.output;
+      // XFile file = XFile(refile.path);
+      // displayResult(result);
+      // final file = await _cameraController.stopVideoRecording();
+      // setState(() => _isRecording = false);
+       final route = MaterialPageRoute(
+         fullscreenDialog: true,
+         builder: (_) => VideoPage(file: result.output),
+       );
+       Navigator.push(context, route);
     }
+  }
+
+  Future<void> displayResult(RenderResult result,
+      [bool saveToGallery = false]) async {
+    print("file exits: ${await result.output.exists()}");
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AnimatedExamplePopUp(
+          context: context,
+          result: result,
+        ),
+      );
+    }
+      GallerySaver.saveVideo(result.output.path)
+          .then((value) => print("saved export to gallery"));
   }
 
   void _switchCamera() async {
@@ -205,21 +233,24 @@ void _toogleFlash() {
                           );
                           _setFocusPoint(relativTapPosition);
                         },
-                        child: CameraPreview(_cameraController,
-                          child:
-                            Positioned(
-                              top: 0,
-                              right: 10,
-                              child: Container(
-                                color: Colors.transparent,
-                                child: Text( widget.timerType != TimerType.tabata 
-                                    ? (widget.timerType == TimerType.countdown
-                                      ? context.select((CountDownProvider count) => count.timeLeftString)
-                                      : context.select((CountupProvider count) => count.timeLeftString)) 
-                                    : context.select((TabataProvider count) => count.timeLeftString), 
-                                  style: const TextStyle(fontSize: 50, fontWeight: FontWeight.normal, color: Colors.white),),
+                        child: Render(
+                          controller: renderController,
+                          child: CameraPreview(_cameraController,
+                            child:
+                              Positioned(
+                                top: 0,
+                                right: 10,
+                                child: Container(
+                                  color: Colors.transparent,
+                                  child: Text( widget.timerType != TimerType.tabata 
+                                      ? (widget.timerType == TimerType.countdown
+                                        ? context.select((CountDownProvider count) => count.timeLeftString)
+                                        : context.select((CountupProvider count) => count.timeLeftString)) 
+                                      : context.select((TabataProvider count) => count.timeLeftString), 
+                                    style: const TextStyle(fontSize: 50, fontWeight: FontWeight.normal, color: Colors.white),),
+                                ),
                               ),
-                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -324,3 +355,4 @@ void _toogleFlash() {
 
     
 }
+
